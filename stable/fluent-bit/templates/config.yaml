@@ -58,10 +58,11 @@ data:
 {{- if .Values.backend.forward.tls.enabled }}
         tls               On
         tls.verify        {{ .Values.backend.forward.tls.verify }}
-        tls.ca_file       /fluent-bit/ssl/public/ca.crt.pem
-        tls.crt_file      /fluent-bit/ssl/public/server.crt.pem
-        tls.key_file      /fluent-bit/ssl/private/server.key.pem
-        tls.key_passwd    "${FLUENT_TLS_PASS}"
+        tls.ca_file       /fluent-bit/ssl/ca.crt
+        tls.crt_file      /fluent-bit/ssl/server.crt
+        tls.key_file      /fluent-bit/ssl/server.key
+        tls.key_passwd    ${FLUENT_TLS_PASS}
+        Shared_Key        ${FLUENT_SHARED_KEY}
 {{- end }}
 
 {{ else if eq .Values.backend.type "es" }}

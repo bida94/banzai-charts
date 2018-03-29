@@ -47,10 +47,9 @@ backend:
     host: fluentd
     port: 24284
     tls:
-      enabled: false
+      enabled: true
       verify: Off
       secretname: fluent-tls
-      caCrt: ""
   es:
     host: elasticsearch
     port: 9200

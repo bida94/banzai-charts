@@ -27,7 +27,20 @@ spec:
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
 #        command: ['sh', '-c', 'sleep 10000' ]
         env:
-{{ toYaml .Values.env | indent 10 }}
+{{- if .Values.backend.forward.tls.enabled }}
+        - name: FLUENT_TLS_PASS
+          valueFrom:
+            secretKeyRef:
+              name: fluent-tls
+              key: fluent-tls-pass
+        - name: FLUENT_SHARED_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fluent-tls
+              key: fluent-shared-key
+{{- end }}
+
+
         resources:
 {{ toYaml .Values.resources | indent 10 }}
         volumeMounts:
@@ -48,7 +61,7 @@ spec:
 {{ end }}
 {{- if .Values.backend.forward.tls.enabled }}
         - name: fluent-tls
-          mountPath: /fluent-bit/crt/
+          mountPath: /fluent-bit/ssl/
           readOnly: true
 {{- end }}
         - name: position-store
@@ -72,7 +85,7 @@ spec:
 {{- if .Values.backend.forward.tls.enabled }}
       - name: fluent-tls
         secret:
-          secretName: {{ .Release.Name }}-fluent-tls
+          secretName: fluent-tls
 {{- end }}
       - name: config
         configMap:
