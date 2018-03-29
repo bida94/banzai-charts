@@ -6,21 +6,33 @@ metadata:
   labels:
     app: {{ template "fluent-bit.fullname" . }}
 data:
+  fluent-bit.conf2: |-
+    asdasd
   fluent-bit.conf: |-
     [SERVICE]
         Flush        1
         Daemon       Off
         Log_Level    info
         Parsers_File parsers.conf
+{{- if .Values.metrics.enabled }}
+        HTTP_Server  On
+        HTTP_Listen  {{ .Values.metrics.listen }}
+        HTTP_Port    {{ .Values.metrics.port }}
+{{- else }}
+        HTTP_Server  Off
+{{- end }}
 
     [INPUT]
-        Name             tail
-        Path             /var/log/containers/*.log
-        Parser           docker
-        Tag              kube.*
-        Refresh_Interval 5
-        Mem_Buf_Limit    5MB
-        Skip_Long_Lines  On
+        Name             {{ .Values.input.name }}
+        Path             {{ .Values.input.path }}
+        Parser           {{ .Values.input.parser }}
+        Tag              {{ .Values.input.tag }}
+        Refresh_Interval {{ .Values.input.refreshInterval }}
+        Mem_Buf_Limit    {{ .Values.input.memBufLimit }}
+        Skip_Long_Lines  {{ .Values.input.skipLongLines }}
+{{- if .Values.positionStore.enabled }}
+        db               {{ .Values.positionStore.path }}/logs.db
+{{- end }}
 
     [FILTER]
         Name             kubernetes
@@ -43,6 +55,15 @@ data:
         Host          {{ .Values.backend.forward.host }}
         Port          {{ .Values.backend.forward.port }}
         Retry_Limit False
+{{- if .Values.backend.forward.tls.enabled }}
+        tls               On
+        tls.verify        {{ .Values.backend.forward.tls.verify }}
+        tls.ca_file       /fluent-bit/ssl/public/ca.crt.pem
+        tls.crt_file      /fluent-bit/ssl/public/server.crt.pem
+        tls.key_file      /fluent-bit/ssl/private/server.key.pem
+        tls.key_passwd    "${FLUENT_TLS_PASS}"
+{{- end }}
+
 {{ else if eq .Values.backend.type "es" }}
     [OUTPUT]
         Name  es
@@ -63,4 +84,106 @@ data:
 {{- end }}
         Format {{ .Values.backend.http.format }}
 {{- end }}
-{{- end -}}
+{{- end }}
+
+  parsers.conf: |-
+    [PARSER]
+        Name   apache
+        Format regex
+        Regex  ^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+    [PARSER]
+        Name   apache2
+        Format regex
+        Regex  ^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^ ]*) +\S*)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+    [PARSER]
+        Name   apache_error
+        Format regex
+        Regex  ^\[[^ ]* (?<time>[^\]]*)\] \[(?<level>[^\]]*)\](?: \[pid (?<pid>[^\]]*)\])?( \[client (?<client>[^\]]*)\])? (?<message>.*)$
+
+    [PARSER]
+        Name   nginx
+        Format regex
+        Regex ^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+    [PARSER]
+        Name   json-test
+        Format json
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+    [PARSER]
+        Name         docker
+        Format       json
+        Time_Key     time
+        Time_Format  %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep    On
+        # Command      |  Decoder | Field | Optional Action
+        # =============|==================|=================
+        Decode_Field_As   escaped    log
+
+    [PARSER]
+        Name        docker-daemon
+        Format      regex
+        Regex       time="(?<time>[^ ]*)" level=(?<level>[^ ]*) msg="(?<msg>[^ ].*)"
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+
+    [PARSER]
+        Name        syslog-rfc5424
+        Format      regex
+        Regex       ^\<(?<pri>[0-9]{1,5})\>1 (?<time>[^ ]+) (?<host>[^ ]+) (?<ident>[^ ]+) (?<pid>[-0-9]+) (?<msgid>[^ ]+) (?<extradata>(\[(.*)\]|-)) (?<message>.+)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+
+    [PARSER]
+        Name        syslog-rfc3164-local
+        Format      regex
+        Regex       ^\<(?<pri>[0-9]+)\>(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$
+        Time_Key    time
+        Time_Format %b %d %H:%M:%S
+        Time_Keep   On
+
+    [PARSER]
+        Name        syslog-rfc3164
+        Format      regex
+        Regex       /^\<(?<pri>[0-9]+)\>(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$/
+        Time_Key    time
+        Time_Format %b %d %H:%M:%S
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+
+    [PARSER]
+        Name    mongodb
+        Format  regex
+        Regex   ^(?<time>[^ ]*)\s+(?<severity>\w)\s+(?<component>[^ ]+)\s+\[(?<context>[^\]]+)]\s+(?<message>.*?) *(?<ms>(\d+))?(:?ms)?$
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+        Time_Key time
+
+    [PARSER]
+        Name    kube-custom
+        Format  regex
+        Regex   var\.log\.containers\.(?<pod_name>[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?<namespace_name>[^_]+)_(?<container_name>.+)-(?<docker_id>[a-z0-9]{64})\.log$
+
+    [PARSER]
+        Name    filter-kube-test
+        Format  regex
+        Regex   .*kubernetes.(?<pod_name>[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?<namespace_name>[^_]+)_(?<container_name>.+)-(?<docker_id>[a-z0-9]{64})\.log$
+
+  parsers_java.conf: |-
+    [PARSER]
+        Name        java_multiline
+        Format      regex
+        Regex       /^(?<time>\d{4}-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}:\d{1,2}) \[(?<thread>.*)\] (?<level>[^\s]+)(?<message>.*)/
+        Time_Key    time
+        Time_Format %Y-%m-%d %H:%M:%S

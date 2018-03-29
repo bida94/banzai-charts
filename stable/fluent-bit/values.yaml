@@ -4,15 +4,53 @@ on_minikube: false
 
 image:
   fluent_bit:
-    repository: fluent/fluent-bit
-    tag: 0.12.15
+    repository: banzaicloud/fluent-bit
+    tag: latest
   pullPolicy: Always
+
+input:
+  name: tail
+  path: /var/log/containers/*.log
+  parser: docker
+  tag: kube.*
+  refreshInterval: 5
+  memBufLimit: 5MB
+  skipLongLines: On
+
+metrics:
+  enabled: true
+  listen: 0.0.0.0
+  port: 2020
+
+positionStore:
+  enabled: true
+  path:  /fluent-bit/storage
+
+  persistence:
+    enabled: true
+    ## Used to store Log parsing position
+    ## Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    accessMode: ReadWriteOnce
+    size: 100Mi
+
 
 backend:
   type: forward
   forward:
     host: fluentd
     port: 24284
+    tls:
+      enabled: false
+      verify: Off
+      secretname: fluent-tls
+      caCrt: ""
   es:
     host: elasticsearch
     port: 9200

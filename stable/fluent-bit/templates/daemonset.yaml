@@ -13,12 +13,19 @@ spec:
         app: {{ template "fluent-bit.fullname" . }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+{{- if .Values.metrics.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/v1/metrics/prometheus"
+        prometheus.io/port: "8080"
+{{- end }}
+
     spec:
       serviceAccountName: {{ if .Values.rbac.create }}{{ template "fluent-bit.fullname" . }}{{ else }}"{{ .Values.rbac.serviceAccountName }}"{{ end }}
       containers:
       - name: fluent-bit
         image: "{{ .Values.image.fluent_bit.repository }}:{{ .Values.image.fluent_bit.tag }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+#        command: ['sh', '-c', 'sleep 10000' ]
         env:
 {{ toYaml .Values.env | indent 10 }}
         resources:
@@ -30,8 +37,7 @@ spec:
           mountPath: /var/lib/docker/containers
           readOnly: true
         - name: config
-          mountPath: /fluent-bit/etc/fluent-bit.conf
-          subPath: fluent-bit.conf
+          mountPath: /fluent-bit/etc/
 {{- if .Values.extraVolumeMounts }}
 {{ toYaml .Values.extraVolumeMounts | indent 8 }}
 {{- end }}
@@ -40,6 +46,13 @@ spec:
           mountPath: /mnt
           readOnly: true
 {{ end }}
+{{- if .Values.backend.forward.tls.enabled }}
+        - name: fluent-tls
+          mountPath: /fluent-bit/crt/
+          readOnly: true
+{{- end }}
+        - name: position-store
+          mountPath: /fluent-bit/storage
       terminationGracePeriodSeconds: 10
     {{- if .Values.nodeSelector }}
       nodeSelector:
@@ -56,6 +69,11 @@ spec:
       - name: varlibdockercontainers
         hostPath:
           path: /var/lib/docker/containers
+{{- if .Values.backend.forward.tls.enabled }}
+      - name: fluent-tls
+        secret:
+          secretName: {{ .Release.Name }}-fluent-tls
+{{- end }}
       - name: config
         configMap:
           name: {{ if .Values.existingConfigMap }}{{ .Values.existingConfigMap }}{{- else }}{{ template "fluent-bit.fullname" . }}-config{{- end }}
@@ -67,3 +85,11 @@ spec:
         hostPath:
           path: /mnt
 {{ end }}
+
+      - name: position-store
+      {{- if .Values.positionStore.persistence.enabled }}
+        hostPath:
+          path: /tmp
+      {{- else }}
+        emptyDir: {}
+      {{- end -}}
