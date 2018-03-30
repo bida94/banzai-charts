@@ -62,10 +62,20 @@ spec:
         volumeMounts:
         - name: config-volume-{{ template "fluentd.fullname" . }}
           mountPath: /etc/fluent/config.d
+{{- if .Values.source.tls.enabled }}
+        - name:  fluent-tls
+          mountPath: /fluentd/etc/ssl/
+          readOnly: true
+{{- end }}
       volumes:
         - name: config-volume-{{ template "fluentd.fullname" . }}
           configMap:
             name: {{ template "fluentd.fullname" . }}
+{{- if .Values.source.tls.enabled }}
+        - name: fluent-tls
+          secret:
+            secretName: {{ .Values.source.tls.secretName }}
+{{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
