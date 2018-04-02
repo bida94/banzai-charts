@@ -28,6 +28,9 @@ zeppelin:
     internalPort: 8080
     externalPort:  8080
 
+  userName: ""
+  password: ""
+
 ingress:
   enabled: false
 

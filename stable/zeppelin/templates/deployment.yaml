@@ -15,10 +15,22 @@ spec:
         app: {{ template "fullname" . }}
 
     spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            name: shiro-config
+            items:
+            - key: shiro.ini
+              path: shiro.ini
+
+      restartPolicy: Never
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.zeppelin.image.repository }}:{{ .Values.zeppelin.image.tag }}"
         imagePullPolicy: {{ .Values.zeppelin.image.pullPolicy }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /opt/zeppelin/conf
         env:
           - name: SPARK_SUBMIT_OPTIONS
             value: >-
