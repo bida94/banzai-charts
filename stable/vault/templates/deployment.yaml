@@ -24,7 +24,7 @@ spec:
         {{- else }}
         command: ["vault", "server", "-config", "/vault/config/config.json"]
         {{- end }}
-        {{- if .Values.vault.kubernetesAuth }}
+        {{- if and .Values.vault.dev .Values.vault.kubernetesAuth }}
         lifecycle:
           postStart:
             exec:
@@ -32,7 +32,7 @@ spec:
               - "/bin/sh"
               - "-c"
               - sleep 5
-                && vault auth-enable kubernetes
+                && vault auth enable kubernetes
                 && vault write auth/kubernetes/config token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt kubernetes_host=https://${KUBERNETES_SERVICE_HOST}
                 {{- range .Values.vault.policies }}
                 && vault write sys/policy/{{ .name }} rules='{{ .rules }}'

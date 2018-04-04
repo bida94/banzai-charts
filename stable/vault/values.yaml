@@ -53,7 +53,7 @@ vault:
   # Only used to enable the Kubernetes auth backend that can be used to authenticate
   # with Vault using a Kubernetes Service Account Token. When in set to false, policies
   # and roles is not used to configure Vault.
-  kubernetesAuth: false
+  kubernetesAuth: true
   # Allows creating policies in Vault which can be used later on in roles
   # for the Kubernetes based authentication.
   # See https://www.vaultproject.io/docs/concepts/policies.html for more information.
