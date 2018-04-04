@@ -110,3 +110,15 @@ unsealer:
     repository: quay.io/jetstack/vault-unsealer
     tag: canary
     pullPolicy: IfNotPresent
+  args: [
+      "--google-cloud-kms-key-ring",
+      "vault",
+      "--google-cloud-kms-crypto-key",
+      "vault-unsealer",
+      "--google-cloud-kms-location",
+      "global",
+      "--google-cloud-storage-bucket",
+      "vault-ha",
+      "--google-cloud-kms-project",
+      "continual-air-196513"
+  ]

@@ -74,18 +74,8 @@ spec:
       - name: vault-unsealer
         image: "{{ .Values.unsealer.image.repository }}:{{ .Values.unsealer.image.tag }}"
         imagePullPolicy: {{ .Values.unsealer.image.pullPolicy }}
-        command: ["vault-unsealer",
-                  "unseal"]
-        args: ["--google-cloud-kms-key-ring",
-               "vault",
-               "--google-cloud-kms-crypto-key",
-               "vault-unsealer",
-               "--google-cloud-kms-location",
-               "global",
-               "--google-cloud-storage-bucket",
-               "vault-ha",
-               "--google-cloud-kms-project",
-               "continual-air-196513"]
+        command: ["vault-unsealer", "unseal"]
+        args: {{ toJson .Values.unsealer.args }}
         env:
           - name: VAULT_ADDR
             value: http://[::]:8200
