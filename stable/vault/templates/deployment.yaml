@@ -16,7 +16,7 @@ spec:
         release: {{ .Release.Name }}
     spec:
       containers:
-      - name: {{ .Chart.Name }}
+      - name: vault
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.vault.dev }}
@@ -70,6 +70,28 @@ spec:
         {{- end }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
+{{- if not .Values.vault.dev }}
+      - name: vault-unsealer
+        image: "{{ .Values.unsealer.image.repository }}:{{ .Values.unsealer.image.tag }}"
+        imagePullPolicy: {{ .Values.unsealer.image.pullPolicy }}
+        command: ["vault-unsealer",
+                  "unseal"]
+        args: ["--google-cloud-kms-key-ring",
+               "vault",
+               "--google-cloud-kms-crypto-key",
+               "vault-unsealer",
+               "--google-cloud-kms-location",
+               "global",
+               "--google-cloud-storage-bucket",
+               "vault-ha",
+               "--google-cloud-kms-project",
+               "continual-air-196513"]
+        env:
+          - name: VAULT_ADDR
+            value: http://[::]:8200
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+{{- end }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

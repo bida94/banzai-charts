@@ -4,7 +4,7 @@
 replicaCount: 1
 image:
   repository: vault
-  tag: 0.9.3
+  tag: 0.10.0-beta1
   pullPolicy: IfNotPresent
 service:
   name: vault
@@ -41,7 +41,7 @@ vault:
   # section below is not used to configure Vault. See
   # https://www.vaultproject.io/intro/getting-started/dev-server.html for more
   # information.
-  dev: true
+  dev: false
   # Allows the mounting of various custom secrets th enable production vault
   # configurations. The comments show an example usage for mounting a TLS
   # secret. The two fields required are a secretName indicating the name of
@@ -53,7 +53,7 @@ vault:
   # Only used to enable the Kubernetes auth backend that can be used to authenticate
   # with Vault using a Kubernetes Service Account Token. When in set to false, policies
   # and roles is not used to configure Vault.
-  kubernetesAuth: true
+  kubernetesAuth: false
   # Allows creating policies in Vault which can be used later on in roles
   # for the Kubernetes based authentication.
   # See https://www.vaultproject.io/docs/concepts/policies.html for more information.
@@ -83,7 +83,7 @@ vault:
         # tls_cert_file: /vault/tls/server.crt
         # tls_key_file: /vault/tls/server.key
     # See https://www.vaultproject.io/docs/configuration/storage/ for storage backends
-    storage: {}
+    storage:
       # consul:
       #   address: ""
       #   path: ""
@@ -99,7 +99,14 @@ vault:
       #   secret_key: ""
       #   endpoint: "" # When not using AWS S3
       #
-      # gcs:
-      #   bucket: ""
-      #   # Use a custom secret to mount this file.
-      #   credentials_file: ""
+      gcs:
+        bucket: "vault-ha"
+        credentials_file: ""
+        ha_enabled: "true"
+    api_addr: http://localhost:8200
+
+unsealer:
+  image:
+    repository: quay.io/jetstack/vault-unsealer
+    tag: canary
+    pullPolicy: IfNotPresent
