@@ -34,10 +34,10 @@ spec:
               - sleep 5
                 && vault auth enable kubernetes
                 && vault write auth/kubernetes/config token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt kubernetes_host=https://${KUBERNETES_SERVICE_HOST}
-                {{- range .Values.vault.policies }}
+                {{- range .Values.vault.externalConfig.policies }}
                 && vault write sys/policy/{{ .name }} rules='{{ .rules }}'
                 {{- end }}
-                {{- range .Values.vault.roles }}
+                {{- range .Values.vault.externalConfig.roles }}
                 && vault write auth/kubernetes/role/{{ .name }} bound_service_account_names={{ .bound_service_account_names }} bound_service_account_namespaces={{ .bound_service_account_namespaces }} policies={{ .policies }} ttl={{ .ttl }}
                 {{- end }}
         {{- end }}
@@ -79,6 +79,20 @@ spec:
         env:
           - name: VAULT_ADDR
             value: http://[::]:8200
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+      - name: vault-configurer
+        image: "{{ .Values.unsealer.image.repository }}:{{ .Values.unsealer.image.tag }}"
+        imagePullPolicy: {{ .Values.unsealer.image.pullPolicy }}
+        command: ["vault-unsealer", "configure"]
+        args: {{ toJson .Values.unsealer.args }}
+        env:
+          - name: VAULT_ADDR
+            value: http://[::]:8200
+        workingDir: /config
+        volumeMounts:
+        - name: vault-config
+          mountPath: /config/
         resources:
 {{ toYaml .Values.resources | indent 10 }}
 {{- end }}

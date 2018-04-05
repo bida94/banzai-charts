@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   repository: vault
   tag: 0.10.0-beta1
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 service:
   name: vault
   type: ClusterIP
@@ -54,25 +54,26 @@ vault:
   # with Vault using a Kubernetes Service Account Token. When in set to false, policies
   # and roles is not used to configure Vault.
   kubernetesAuth: true
-  # Allows creating policies in Vault which can be used later on in roles
-  # for the Kubernetes based authentication.
-  # See https://www.vaultproject.io/docs/concepts/policies.html for more information.
-  policies:
-    - name: allow_secrets
-      rules: path "secret/*" {
-              capabilities = ["create", "read", "update", "delete", "list"]
-             }
-  # Allows creating roles in Vault which can be used later on for the Kubernetes based
-  # authentication.
-  # See https://www.vaultproject.io/docs/auth/kubernetes.html#creating-a-role for
-  # more information.
-  roles:
-    # Allow every pod in the default namespace to use the secret kv store
-    - name: default
-      bound_service_account_names: default
-      bound_service_account_namespaces: default
-      policies: allow_secrets
-      ttl: 1h
+  externalConfig:
+    # Allows creating policies in Vault which can be used later on in roles
+    # for the Kubernetes based authentication.
+    # See https://www.vaultproject.io/docs/concepts/policies.html for more information.
+    policies:
+      - name: allow_secrets
+        rules: path "secret/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+    # Allows creating roles in Vault which can be used later on for the Kubernetes based
+    # authentication.
+    # See https://www.vaultproject.io/docs/auth/kubernetes.html#creating-a-role for
+    # more information.
+    roles:
+      # Allow every pod in the default namespace to use the secret kv store
+      - name: default
+        bound_service_account_names: default
+        bound_service_account_namespaces: default
+        policies: allow_secrets
+        ttl: 1h
   config:
     # A YAML representation of a final vault config.json file.
     # See https://www.vaultproject.io/docs/configuration/ for more information.
@@ -107,9 +108,9 @@ vault:
 
 unsealer:
   image:
-    repository: quay.io/jetstack/vault-unsealer
+    repository: banzaicloud/vault-unsealer
     tag: canary
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   args: [
       "--google-cloud-kms-key-ring",
       "vault",
