@@ -18,7 +18,7 @@ spec:
       containers:
       - name: vault-init
         image: "{{ .Values.unsealer.image.repository }}:{{ .Values.unsealer.image.tag }}"
-        command: ["vault-unsealer", "init"]
+        command: ["bank-vaults", "init"]
         args: {{ toJson .Values.unsealer.args }}
         env:
           - name: VAULT_ADDR

@@ -108,7 +108,7 @@ vault:
 
 unsealer:
   image:
-    repository: banzaicloud/vault-unsealer
+    repository: banzaicloud/bank-vaults
     tag: canary
     pullPolicy: Always
   args: [

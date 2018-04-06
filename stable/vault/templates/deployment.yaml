@@ -74,7 +74,7 @@ spec:
       - name: vault-unsealer
         image: "{{ .Values.unsealer.image.repository }}:{{ .Values.unsealer.image.tag }}"
         imagePullPolicy: {{ .Values.unsealer.image.pullPolicy }}
-        command: ["vault-unsealer", "unseal"]
+        command: ["bank-vaults", "unseal"]
         args: {{ toJson .Values.unsealer.args }}
         env:
           - name: VAULT_ADDR
@@ -84,7 +84,7 @@ spec:
       - name: vault-configurer
         image: "{{ .Values.unsealer.image.repository }}:{{ .Values.unsealer.image.tag }}"
         imagePullPolicy: {{ .Values.unsealer.image.pullPolicy }}
-        command: ["vault-unsealer", "configure"]
+        command: ["bank-vaults", "configure"]
         args: {{ toJson .Values.unsealer.args }}
         env:
           - name: VAULT_ADDR
