@@ -71,6 +71,15 @@ fluent-bit:
 
 
 fluentd:
+  image:
+    repository: banzaicloud/fluentd
+    tag: v1.1.3
+
+  rbac:
+    create: true
+    serviceAccountName: default
+
+
   extraVolumeMounts:
     - name: tls-volume-{{ template "fluentd.fullname" . }}
       mountPath: /fluentd/etc/ssl/
